@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  AGENT_API_KEY: ci-dummy-key
+  REDIS_URL: fake://
+
+jobs:
+  test:
+    name: Test CP1-CP4
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run unit tests
+        run: pytest tests/test_cp1.py tests/test_cp2.py tests/test_cp3.py tests/test_cp4.py -v -m "not docker"
+
+  build:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build production image
+        run: docker build -t day12-agent:ci .
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: [test, build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    env:
+      DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+    steps:
+      - name: Trigger configured deployment
+        shell: bash
+        run: |
+          if [ -n "$DEPLOY_HOOK" ]; then
+            curl -fsS -X POST "$DEPLOY_HOOK"
+          else
+            echo "RENDER_DEPLOY_HOOK is not configured; deployment trigger skipped."
+          fi
