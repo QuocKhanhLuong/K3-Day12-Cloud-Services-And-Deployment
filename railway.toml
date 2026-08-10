@@ -1,17 +1,16 @@
-# CP5 — Cấu hình deploy Railway (dùng nếu bạn chọn Railway).
+# CP5 — Cấu hình deploy Railway.
 #
-# Các biến môi trường KHÔNG khai báo ở đây. Đặt chúng trong dashboard hoặc:
-#     railway variables --set AGENT_API_KEY=...
-#
-# Railway tự gán biến PORT — app phải đọc $PORT, đừng cố định 8000.
+# Các biến môi trường KHÔNG khai báo ở đây. Đặt chúng trong Railway Variables.
+# Railway cung cấp PORT ở runtime. Vì service được deploy bằng Dockerfile,
+# startCommand chạy ở exec form nên phải bọc bằng shell để expand $PORT.
 
 [build]
 builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+startCommand = "sh -c 'exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}'"
 healthcheckPath = "/health"
-healthcheckTimeout = 30
+healthcheckTimeout = 60
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
