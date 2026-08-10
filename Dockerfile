@@ -17,7 +17,7 @@ COPY --from=builder /install /usr/local
 COPY app/ app/
 COPY utils/ utils/
 
-RUN adduser --disabled-password --no-create-home appuser
+RUN adduser --system --no-create-home appuser
 USER appuser
 
 EXPOSE 8000
